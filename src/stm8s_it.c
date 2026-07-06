@@ -32,6 +32,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <stm8s_it.h>
 #include <stm8s_gpio.h>
+#include <stm8s_tim4.h>
 
 /** @addtogroup Template_Project
   * @{
@@ -45,6 +46,9 @@
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 extern volatile int buttonPressed;
+extern volatile unsigned long tick_ms;
+extern volatile unsigned long sys_ms;
+extern volatile int running;
 /* Private functions ---------------------------------------------------------*/
 /* Public functions ----------------------------------------------------------*/
 
@@ -156,12 +160,13 @@ INTERRUPT_HANDLER(EXTI_PORTC_IRQHandler, 5)
   */
 INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
 {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
+  static unsigned long last_press = 0;
   if (GPIO_ReadInputPin(BUTTON_PORT, BUTTON_PIN) == RESET)
   {
-    buttonPressed = 1;
+    if ((sys_ms - last_press) > 200) {
+      buttonPressed = 1;
+      last_press = sys_ms;
+    }
   }
 }
 
@@ -496,9 +501,11 @@ INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
   */
  INTERRUPT_HANDLER(TIM4_UPD_OVF_IRQHandler, 23)
  {
-  /* In order to detect unexpected events during development,
-     it is recommended to set a breakpoint on the following instruction.
-  */
+  TIM4_ClearITPendingBit(TIM4_IT_UPDATE);
+  sys_ms++;
+  if (running) {
+    tick_ms++;
+  }
  }
 #endif /* (STM8S903) || (STM8AF622x)*/
 

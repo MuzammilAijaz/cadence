@@ -2,6 +2,11 @@
 #include <stm8s_clk.h>
 #include <stm8s_gpio.h>
 #include <stm8s_exti.h>
+#include <stm8s_tim4.h>
+
+//==============================================================================
+
+//----- Button -------------------------------------------------
 
 // Input Pins
 #define BUTTON_PORT  GPIOD
@@ -14,6 +19,7 @@
 #define LCD_RS_PIN   GPIO_PIN_3
 #define LCD_E_PORT   GPIOC
 #define LCD_E_PIN    GPIO_PIN_7
+
 // Data Pins (4-bit mode)
 #define LCD_D4_PORT  GPIOA
 #define LCD_D4_PIN   GPIO_PIN_3
@@ -24,18 +30,88 @@
 #define LCD_D7_PORT  GPIOC
 #define LCD_D7_PIN   GPIO_PIN_6
 
-//--------------------------------------------------------------
+//==============================================================================
 
+// Variables shared with interrupt handlers in stm8s_it.c
 volatile int buttonPressed = 0;
+volatile unsigned long tick_ms = 0;
+volatile unsigned long sys_ms = 0; // global 
+volatile int running = 0;
 
 // important so toolchain doesnt optimize code out.
 extern void EXTI_PORTD_IRQHandler(void) __interrupt(6);
+extern void TIM4_UPD_OVF_IRQHandler(void) __interrupt(23);
 
-/* 16MHz CPU Delay helper (Roughly 1 millisecond per 'ms' unit) */
-static void delay_ms(unsigned long ms) {
-  unsigned long count = ms * 1600;
-  while (count--) {
-    __asm__("nop");
+static void lcd_pulse_enable(void);
+static void lcd_send_nibble(uint8_t nibble);
+static void lcd_send_byte(uint8_t byte, uint8_t is_data);
+static void lcd_init(void);
+static void lcd_print(const char *s);
+static void lcd_set_cursor(uint8_t row, uint8_t col);
+static void tim4_init(void);
+static void format_time(unsigned long ms, char *buf);
+static void delay_ms(unsigned long ms);
+
+//==============================================================================
+
+int main(void)
+{
+  char timebuf[9];
+  unsigned long last_ms = 0;
+
+  /* Run CPU at full 16 MHz clock speed */
+  CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+
+  // Peripheral inits
+  lcd_init();
+
+  GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
+  EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
+
+  /* Start TIM4 for 1ms ticks */
+  tim4_init();
+
+  /* Draw static label */
+  lcd_set_cursor(0, 0);
+  lcd_print("Time");
+
+  /* Show initial time */
+  lcd_set_cursor(0, 8);
+  lcd_print("00:00:00");
+
+  /* Show STOP indicator */
+  lcd_set_cursor(1, 0);
+  lcd_print("[STOP]");
+
+  enableInterrupts();
+
+  while (1)
+  {
+    /* Handle button: toggle running */
+    if (buttonPressed) {
+      buttonPressed = 0;
+      running = !running;
+
+      /* Update status indicator on row 2 */
+      lcd_set_cursor(1, 0);
+      if (running) {
+        lcd_print("[ GO ]");
+      } else {
+        lcd_print("[STOP]");
+      }
+    }
+
+    /* Update display every second */
+    disableInterrupts();
+    unsigned long now = tick_ms;
+    enableInterrupts();
+
+    if ((now / 1000) != (last_ms / 1000)) {
+      last_ms = now;
+      format_time(now, timebuf);
+      lcd_set_cursor(0, 8);
+      lcd_print(timebuf);
+    }
   }
 }
 
@@ -61,7 +137,7 @@ static void lcd_send_nibble(uint8_t nibble) {
 }
 
 /* Send a full byte (Command or Data) split into two nibbles */
-void lcd_send_byte(uint8_t byte, uint8_t is_data) {
+static void lcd_send_byte(uint8_t byte, uint8_t is_data) {
   if (is_data) {
     GPIO_WriteHigh(LCD_RS_PORT, LCD_RS_PIN); // RS = 1 for Data
   } else {
@@ -73,7 +149,7 @@ void lcd_send_byte(uint8_t byte, uint8_t is_data) {
 }
 
 /* Initialization Flow */
-void lcd_init(void) {
+static void lcd_init(void) {
   // Power On
   GPIO_Init(LCD_RS_PORT, LCD_RS_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
   GPIO_Init(LCD_E_PORT,  LCD_E_PIN,  GPIO_MODE_OUT_PP_LOW_FAST);
@@ -100,34 +176,69 @@ void lcd_init(void) {
   lcd_send_byte(0x06, 0); // Entry Mode Set: Increment cursor automatically
 }
 
-//==============================================================================
-
-int main(void)
-{
-  /* Run CPU at full 16 MHz clock speed */
-  CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
-
-  /* Initialize the LCD screen */
-  lcd_init();
-
-  /* Button */
-  GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
-  EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
-
-  /* Write character 'A' onto the screen */
-  lcd_send_byte('A', 1);
-
-  enableInterrupts();
-
-  while (1)
-  {
-    if (buttonPressed) {
-      buttonPressed = 0;
-      lcd_send_byte('B', 1);
-      delay_ms(200); // crude debounce
-    }
+/* Print a null-terminated string */
+static void lcd_print(const char *s) {
+  while (*s) {
+    lcd_send_byte(*s++, 1);
   }
 }
+
+/* Set cursor position (row 0-1, col 0-15) */
+static void lcd_set_cursor(uint8_t row, uint8_t col) {
+  uint8_t addr = col + (row ? 0x40 : 0x00);
+  lcd_send_byte(0x80 | addr, 0);
+}
+
+//===== Helpers ================================================================
+
+/* 
+ * Setup TIM4 to overflow every 1ms at 16MHz.
+ *
+ * Prescaler=128 -> 125kHz tick,
+ * Period=124 -> 1ms overflow
+ */
+static void tim4_init(void) {
+
+  /* - 16 MHz cpu clock -> 16,000,000 / 128 (prescalar) = 125,000 Hz
+   * - 1 / 125,000 = one timer tick is 8 micro seconds
+   * - 124 is max val it counts to; 124(+1) * 8 = 1000us timer resets */
+  TIM4_TimeBaseInit(TIM4_PRESCALER_128, 124);
+
+  TIM4_ClearFlag(TIM4_FLAG_UPDATE); // safety
+  TIM4_ITConfig(TIM4_IT_UPDATE, ENABLE); // interrupt generation on overflow
+  TIM4_Cmd(ENABLE); // start timer
+}
+
+/* Format time: HH:MM:SS */
+static void format_time(unsigned long ms, char *buf) {
+  unsigned long total_secs = ms / 1000;
+  uint8_t s = total_secs % 60;
+  uint8_t m = (total_secs / 60) % 60;
+  uint8_t h = (total_secs / 3600) % 100;
+
+  buf[0] = '0' + (h / 10);
+  buf[1] = '0' + (h % 10);
+  buf[2] = ':';
+  buf[3] = '0' + (m / 10);
+  buf[4] = '0' + (m % 10);
+  buf[5] = ':';
+  buf[6] = '0' + (s / 10);
+  buf[7] = '0' + (s % 10);
+  buf[8] = '\0';
+}
+
+/* 16MHz CPU Delay helper.
+ *
+ * @param[in] ms (Roughly 1 millisecond per 'ms' unit)
+ */
+static void delay_ms(unsigned long ms) {
+  unsigned long count = ms * 1600;
+  while (count--) {
+    __asm__("nop");
+  }
+}
+
+//==============================================================================
 
 // See: https://community.st.com/s/question/0D50X00009XkhigSAB/what-is-the-purpose-of-define-usefullassert
 #ifdef USE_FULL_ASSERT
