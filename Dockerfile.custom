@@ -1,0 +1,12 @@
+# Start with the pre-built toolchain you already downloaded
+FROM ghcr.io/ctxz/stm8-toolchain:latest
+
+# Install the minimal dependencies needed just to build stm8flash
+RUN apt-get update && apt-get install -y git build-essential pkg-config libusb-1.0-0-dev
+
+# Clone your patched repo, build it, overwrite the default binary, and clean up
+RUN git clone https://github.com/DeqingSun/stm8flash.git /tmp/stm8flash \
+		&& cd /tmp/stm8flash \
+		&& make \
+		&& cp stm8flash /opt/stm8-toolchain/bin/stm8flash \
+		&& rm -rf /tmp/stm8flash
