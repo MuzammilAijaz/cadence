@@ -11,7 +11,7 @@
 #include "cadence_assert.h"
 #include "FSM.h"
 #include "signals.h"
-#include "TimerFSM.h"
+#include "WatchFSM.h"
 #include "DisplayFSM.h"
 
 #include <stdlib.h>
@@ -83,7 +83,7 @@ bool EventQueue_get(Event const **e) {
 
 /* Super loop for dispatching events to multiple FSMs. */
 void EventLoop(void) {
-  CADENCE_ASSERT(g_timerFSM != NULL);
+  CADENCE_ASSERT(g_watchFSM != NULL);
   CADENCE_ASSERT(g_displayFSM != NULL);
 
   /* event loop ("message pump") */
@@ -94,7 +94,7 @@ void EventLoop(void) {
       /* dispatch event to the FSM object */
 
       if (e->sig >= SM_TIMER_START && e->sig <= SM_TIMER_END) {
-	FSM_dispatch(g_timerFSM, e);
+	FSM_dispatch(g_watchFSM, e);
       }
 
       else if (e->sig >= SM_LCD_START && e->sig <= SM_LCD_END) {
