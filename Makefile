@@ -8,7 +8,13 @@ AS = sdasstm8
 FLASH = stm8flash
 OBJCOPY = stm8-objcopy
 SIZE = stm8-size
-DCE = stm8dce
+
+# Dead Code Elimination
+# Default:
+# DCE = stm8dce
+#
+# Run stm8dce via python with higher recursion limit (useful for large codebases)
+DCE = python3 -c "import sys; sys.setrecursionlimit(10000); from stm8dce.__main__ import main; main()"
 
 MKDIR = mkdir
 CP = cp
@@ -42,7 +48,10 @@ BUILD_DIR = build
 ASM_DIR = $(BUILD_DIR)/asm
 AS_FLAGS = -plosg -ff
 
-# Dead Code Elimination
+# Dead Code Elimination (DCE)
+# Set to 1 to enable Dead Code Elimination (stm8dce), or 0 to bypass DCE completely.
+# Can also be overridden from the command line: make ENABLE_DCE=0
+ENABLE_DCE ?= 0
 DCE_DIR = $(BUILD_DIR)/dce
 DCE_FLAGS = --opt-irq
 
@@ -129,7 +138,6 @@ hex: $(BUILD_DIR)/$(PROJECT).ihx
 elf: $(BUILD_DIR)/$(PROJECT).elf
 obj: $(OBJ)
 asm: $(ASM)
-dce: $(DCE_ASM)
 
 $(BUILD_DIR)/$(PROJECT).ihx: $(BUILD_DIR)/$(PROJECT).elf
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $< -O ihex $@
@@ -143,6 +151,11 @@ $(ASM_DIR)/%.asm: %.c
 	@$(MKDIR) -p $(ASM_DIR)
 	$(CC) $< $(CC_FLAGS) $(INCLUDE) $(DEFINE) -S -o $@
 
+# Conditional compilation based on ENABLE_DCE
+ifeq ($(ENABLE_DCE), 1)
+# DCE Enabled: C -> ASM -> DCE ASM -> OBJ
+dce: $(DCE_ASM)
+
 $(DCE_DIR)/%.asm: $(ASM)
 	@$(MKDIR) -p $(DCE_DIR)
 	$(DCE) $(DCE_FLAGS) -o $(DCE_DIR) $^
@@ -150,6 +163,15 @@ $(DCE_DIR)/%.asm: $(ASM)
 $(OBJ_DIR)/%.rel: $(DCE_DIR)/%.asm
 	@$(MKDIR) -p $(OBJ_DIR)
 	$(AS) $(AS_FLAGS) -o $@ $<
+else
+# DCE Disabled: C -> ASM -> OBJ (bypassing DCE step completely)
+dce:
+	@echo "DCE is disabled (ENABLE_DCE=$(ENABLE_DCE))."
+
+$(OBJ_DIR)/%.rel: $(ASM_DIR)/%.asm
+	@$(MKDIR) -p $(OBJ_DIR)
+	$(AS) $(AS_FLAGS) -o $@ $<
+endif
 
 # Clean
 clean:
