@@ -33,6 +33,9 @@ DEFINE +=
 INCLUDE = $(addprefix -I, \
 	include/ \
 	src/ \
+	src/driver/ \
+	src/FSM/ \
+	src/FSM/machines/ \
 )
 
 # Compiler flags
@@ -60,7 +63,10 @@ OBJ_DIR = $(BUILD_DIR)/obj
 
 # Source files
 VPATH += src
-SRC_FILES = $(wildcard src/*.c) # Compile all .c files in src directory
+VPATH += src/driver
+VPATH += src/FSM/
+VPATH += src/FSM/machines
+SRC_FILES = $(wildcard src/*.c src/driver/*.c src/FSM/*.c src/FSM/machines/*.c)
 
 # Linker flags
 LD_FLAGS = -mstm8 --out-fmt-elf --opt-code-size
