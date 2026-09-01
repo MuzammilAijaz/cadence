@@ -33,6 +33,10 @@
 #include <stm8s_it.h>
 #include <stm8s_gpio.h>
 #include <stm8s_tim4.h>
+#include "signals.h"
+#include "FSM.h"
+#include "led.h"
+#include "button.h"
 
 /** @addtogroup Template_Project
   * @{
@@ -40,15 +44,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define BUTTON_PORT  GPIOD
-#define BUTTON_PIN  GPIO_PIN_4
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+
+static int stopwatch_on = 0;
+static volatile unsigned long sys_ms = 0;
+
 /* Private function prototypes -----------------------------------------------*/
-extern volatile int buttonPressed;
-extern volatile unsigned long tick_ms;
-extern volatile unsigned long sys_ms;
-extern volatile int running;
 /* Private functions ---------------------------------------------------------*/
 /* Public functions ----------------------------------------------------------*/
 
@@ -160,11 +162,21 @@ INTERRUPT_HANDLER(EXTI_PORTC_IRQHandler, 5)
   */
 INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
 {
-  static unsigned long last_press = 0;
+  static volatile unsigned long last_press = 0;
+
   if (GPIO_ReadInputPin(BUTTON_PORT, BUTTON_PIN) == RESET)
   {
     if ((sys_ms - last_press) > 200) {
-      buttonPressed = 1;
+      static Event const startEvt = { START_WATCH_SIG };
+      static Event const stopEvt  = { STOP_WATCH_SIG };
+
+      if (!stopwatch_on) {
+        Event_post(&startEvt);
+        stopwatch_on = 1;
+      } else {
+        Event_post(&stopEvt);
+        stopwatch_on = 0;
+      }
       last_press = sys_ms;
     }
   }
@@ -502,10 +514,21 @@ INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
  INTERRUPT_HANDLER(TIM4_UPD_OVF_IRQHandler, 23)
  {
   TIM4_ClearITPendingBit(TIM4_IT_UPDATE);
+
+  static Event const timerHitEvt  = { TIMER_HIT_SIG };
+  static uint16_t ticks = 0;
+
   sys_ms++;
-  if (running) {
-    tick_ms++;
+
+  if (!stopwatch_on) { return; }
+
+  ticks++;
+
+  if (ticks >= 1000) { // every 1 second / 1000ms
+    ticks = 0;
+    Event_post(&timerHitEvt);
   }
+
  }
 #endif /* (STM8S903) || (STM8AF622x)*/
 
