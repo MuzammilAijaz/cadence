@@ -66,6 +66,9 @@ int main(void)
   lcd_init();
 
   GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
+  GPIO_Init(LED_PORT, LED_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  GPIO_WriteHigh(LED_PORT, LED_PIN);
+
   EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
 
   /* Start TIM4 for 1ms ticks */
@@ -246,6 +249,11 @@ void assert_failed(uint8_t* file, uint32_t line)
 { 
 	while (TRUE)
 	{
+	  GPIO_WriteHigh(LED_PORT, LED_PIN);
+	  delay_ms(100);
+
+	  GPIO_WriteLow(LED_PORT, LED_PIN);
+	  delay_ms(100);
 	}
 }
 #endif
