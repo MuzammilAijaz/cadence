@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <stm8s_conf.h>
 
-#define DEBUG_BUILD
+#define DEBUG_BUILD 1
 
-#ifdef DEBUG_BUILD
+#if defined(DEBUG_BUILD) && defined(USE_FULL_ASSERT)
 
 #define CADENCE_ASSERT(expr)                     \
     do {                                   \
