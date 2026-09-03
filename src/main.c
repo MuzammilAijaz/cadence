@@ -15,18 +15,48 @@
 #include "FSM.h"
 #include "utils.h"
 #include "led.h"
+#include "stopwatch.h"
 #include "button.h"
 
 // important so toolchain doesnt optimize code out.
 extern void EXTI_PORTD_IRQHandler(void) __interrupt(6);
 extern void TIM4_UPD_OVF_IRQHandler(void) __interrupt(23);
 
-static void tim4_init(void);
-
 int main(void)
 {
-  /* Run CPU at full 16 MHz clock speed */
+  //----- Clock --------------------------------------------------
+
+  /*
+   * Startup clock: After reset, the microcontroller restarts by
+   * default with an internal 2 MHz clock (HSI/8).
+   *
+   * STM8S Peripheral Clock Gating:
+   * ------------------------------
+   *
+   * CLK_PCKENR1:
+   *   PCKEN23 -> ADC
+   *   PCKEN22 -> AWU
+   *   PCKEN17 -> TIM1
+   *   PCKEN15 -> TIM2
+   *   PCKEN14 -> TIM4
+   *   PCKEN13 -> UART1
+   *   PCKEN11 -> SPI
+   *   PCKEN10 -> I2C
+   *
+   * NOTE: Unlike stm32, GPIO ports are NOT controlled by this
+   * peripheral clock-gating mechanism.
+   * 
+   * NOTE: CLK_PCKENR1 is 0xFF by default (ungated)
+   */
+
+  /* Run CPU at FULL 16 MHz clock speed */
   CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+
+  /* @see driver initializations for clock initializations of other
+   * peripherals.
+   */
+
+  //----- GPIO Initializations -----------------------------------
 
   GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
   GPIO_Init(LED_PORT, LED_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
@@ -34,38 +64,23 @@ int main(void)
 
   EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOD, EXTI_SENSITIVITY_FALL_ONLY);
 
-  /* Start TIM4 for 1ms ticks */
-  tim4_init();
+  //----- Driver Initializations ---------------------------------
 
-  enableInterrupts();
+  /* Start TIM4 ticks */
+  stopwatch_init();
+
+  //----- FSM Construction ---------------------------------------
 
   WatchFSM_ctor();
   DisplayFSM_ctor();
 
+  //----- Run Main Event Loop ------------------------------------
+
+  enableInterrupts();
   // Start event loop
   EventLoop();
 
   return 0; // should never end up here...
-}
-
-//===== Helpers ================================================================
-
-/* 
- * Setup TIM4 to overflow every 1ms at 16MHz.
- *
- * Prescaler=128 -> 125kHz tick,
- * Period=124 -> 1ms overflow
- */
-static void tim4_init(void) {
-
-  /* - 16 MHz cpu clock -> 16,000,000 / 128 (prescalar) = 125,000 Hz
-   * - 1 / 125,000 = one timer tick is 8 micro seconds
-   * - 124 is max val it counts to; 124(+1) * 8 = 1000us timer resets */
-  TIM4_TimeBaseInit(TIM4_PRESCALER_128, 124);
-
-  TIM4_ClearFlag(TIM4_FLAG_UPDATE); // safety
-  TIM4_ITConfig(TIM4_IT_UPDATE, ENABLE); // interrupt generation on overflow
-  TIM4_Cmd(ENABLE); // start timer
 }
 
 //==============================================================================
