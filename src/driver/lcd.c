@@ -80,6 +80,8 @@ void lcd_clear(void) {
   delay_ms(2);
 }
 
+//===== Default Screens ========================================================
+
 void lcd_set_default_timer_screen(void) {
   lcd_clear();
 
@@ -96,3 +98,21 @@ void lcd_set_default_timer_screen(void) {
   lcd_print("[STOP]");
 }
 
+void lcd_set_default_synthesizer_screen(void) {
+  lcd_clear();
+
+  // Title + volume
+  lcd_set_cursor(0, 0);
+  lcd_print("Synth");
+
+  lcd_set_cursor(0, 8);
+  lcd_print("V80");
+
+  // Waveform
+  lcd_set_cursor(1, 0);
+  lcd_print("SQR");
+
+  // Effect
+  lcd_set_cursor(1, 6);
+  lcd_print("DLY30");
+}

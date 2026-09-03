@@ -12,6 +12,7 @@
 
 #include "WatchFSM.h"
 #include "DisplayFSM.h"
+#include "AudioFSM.h"
 #include "FSM.h"
 #include "utils.h"
 #include "led.h"
@@ -79,6 +80,7 @@ int main(void)
 
   WatchFSM_ctor();
   DisplayFSM_ctor();
+  AudioFSM_ctor();
 
   //----- Run Main Event Loop ------------------------------------
 

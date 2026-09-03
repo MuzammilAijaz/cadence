@@ -25,7 +25,9 @@ void lcd_send_byte(uint8_t byte, uint8_t is_data);
 void lcd_init(void);
 void lcd_print(const char *s);
 void lcd_set_cursor(uint8_t row, uint8_t col);
-void lcd_set_default_timer_screen(void);
 void lcd_clear(void);
+
+void lcd_set_default_timer_screen(void);
+void lcd_set_default_synthesizer_screen(void);
 
 #endif

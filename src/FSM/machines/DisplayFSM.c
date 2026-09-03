@@ -212,8 +212,8 @@ static State DisplayFSM_Synthesizer(DisplayFSM* const me, Event const * const e)
 
 	// REFACTOR: remove magic values
 	if (xEvt->value <= 200) { // moved left
-				  // disable stopwatch and move to Mainmenu
-	  static Event const evt = { STOPWATCH_DISABLE_SIG };
+	  // disable audio and move to Mainmenu
+	  static Event const evt = { AUDIO_TURN_OFF_SIG };
 	  Event_post(&evt);
 
 	  status = TRAN(DisplayFSM_MainMenu);
