@@ -75,7 +75,14 @@ void lcd_set_cursor(uint8_t row, uint8_t col) {
   lcd_send_byte(0x80 | addr, 0);
 }
 
-void lcd_reset_screen(void) {
+void lcd_clear(void) {
+  lcd_send_byte(0x01, 0);
+  delay_ms(2);
+}
+
+void lcd_set_default_timer_screen(void) {
+  lcd_clear();
+
   /* Draw static label */
   lcd_set_cursor(0, 0);
   lcd_print("Time");
