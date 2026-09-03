@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stm8s_gpio.h>
 #include <stm8s_conf.h>
+#include "utils.h"
 #include "led.h"
 
 #define DEBUG_BUILD 1
@@ -24,8 +25,12 @@
     do { \
         if (!(expr)) { \
             GPIO_Init(LED_PORT, LED_PIN, GPIO_MODE_OUT_PP_LOW_FAST); \
-            GPIO_WriteLow(LED_PORT, LED_PIN); \
-            while (1); \
+            while (TRUE)  { \
+                GPIO_WriteHigh(LED_PORT, LED_PIN); \
+                delay_ms(200); \
+                GPIO_WriteLow(LED_PORT, LED_PIN); \
+                delay_ms(200); \
+            } \
         } \
     } while (0)
 
