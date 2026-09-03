@@ -35,6 +35,8 @@
 #include <stm8s_it.h>
 #include <stm8s_gpio.h>
 #include <stm8s_tim4.h>
+#include <stm8s_adc1.h>
+
 #include "signals.h"
 #include "FSM.h"
 #include "led.h"
@@ -494,10 +496,14 @@ INTERRUPT_HANDLER(I2C_IRQHandler, 19)
        it is recommended to set a breakpoint on the following instruction.
     */
 
-   static AdcEvent adcEvt  = { 
-     evt.sig = ADC_CONVERTED_SIG,
-     value = ADC1_GetConversionValue(), // WARN:
-   };
+   static AdcEvent adcEvt;
+
+   if (get_axis_being_converted() == ADC_AXIS_X) {
+     adcEvt.super.sig = ADC_X_CONVERTED_SIG;
+   } else {
+     adcEvt.super.sig = ADC_Y_CONVERTED_SIG;
+   }
+   adcEvt.value = ADC1_GetConversionValue();
 
    // ASSUMPTION: we only care about the latest ADC value.
    // WARN: we are passing an object which can change its value!!!
@@ -530,16 +536,33 @@ INTERRUPT_HANDLER(TIM6_UPD_OVF_TRG_IRQHandler, 23)
   TIM4_ClearITPendingBit(TIM4_IT_UPDATE);
 
   static Event const timerHitEvt  = { TIMER_HIT_SIG };
-  static uint16_t ticks = 0;
+  static uint16_t stopwatch_ticks = 0;
+  static uint16_t adc_ticks = 0;
+  static bool flag = 0;
 
   sys_ms++;
 
+  adc_ticks++;
+  if (adc_ticks >= 10) { // every 10ms
+    adc_ticks = 0;
+
+    // start ADC async value conversion
+    // WARN: if ADC value conversion is slower than consumption
+    //       x and y values will get mixed up! 
+    //       @see get_axis_being_converted()
+    if (flag) analog_stick_start_x_conversion(); // @see ADC1_IRQHandler
+    else analog_stick_start_y_conversion(); // @see ADC1_IRQHandler
+    flag = !flag;
+  }
+
+  // FIXME: since we can turn off stopwatch multiple ways now, need a proper
+  // way to see if the stopwatch is actually on in relation with the WatchFSM
   if (!stopwatch_on) { return; }
 
-  ticks++;
+  stopwatch_ticks++;
 
-  if (ticks >= 1000) { // every 1 second / 1000ms
-    ticks = 0;
+  if (stopwatch_ticks >= 1000) { // every 1 second / 1000ms
+    stopwatch_ticks = 0;
     Event_post(&timerHitEvt);
   }
 

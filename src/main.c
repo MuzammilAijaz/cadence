@@ -22,6 +22,7 @@
 // important so toolchain doesnt optimize code out.
 extern void EXTI_PORTD_IRQHandler(void) __interrupt(6);
 extern void TIM4_UPD_OVF_IRQHandler(void) __interrupt(23);
+extern void ADC1_IRQHandler(void) __interrupt(22);
 
 int main(void)
 {

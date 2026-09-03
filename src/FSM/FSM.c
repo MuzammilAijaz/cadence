@@ -93,6 +93,9 @@ void EventLoop(void) {
     if (EventQueue_get(&e)) {
       /* dispatch event to the FSM object */
 
+      // REFACTOR: ugly code
+      // TODO: change order of conditional for efficiency
+
       if (e->sig >= SM_TIMER_START && e->sig <= SM_TIMER_END) {
 	FSM_dispatch(g_watchFSM, e);
       }
@@ -100,6 +103,10 @@ void EventLoop(void) {
       else if (e->sig >= SM_LCD_START && e->sig <= SM_LCD_END) {
 	FSM_dispatch(g_displayFSM, e);
       }
+      else if (e->sig >= SM_ADC_START && e->sig <= SM_ADC_END) {
+	FSM_dispatch(g_displayFSM, e); // REFACTOR: introduce inputFSM???
+      }
+
     }
   }
 }

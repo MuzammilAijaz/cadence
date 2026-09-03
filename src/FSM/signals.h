@@ -10,6 +10,8 @@ enum ReservedSignals {
 
 typedef enum {
     SM_TIMER_START = USER_SIG,
+    STOPWATCH_ENABLE_SIG, // when the stopwatch is selected from menu
+    STOPWATCH_DISABLE_SIG,
     START_WATCH_SIG,
     STOP_WATCH_SIG,
     TIMER_HIT_SIG,
@@ -17,12 +19,13 @@ typedef enum {
 
     SM_LCD_START,
     DISPLAY_UPDATE_TICK_SIG,
-    DISPLAY_ON_STATUS,
-    DISPLAY_OFF_STATUS,
+    DISPLAY_TIMER_ON_STATUS,
+    DISPLAY_TIMER_OFF_STATUS,
     SM_LCD_END,
 
     SM_ADC_START,
-    ADC_CONVERTED_SIG,
+    ADC_X_CONVERTED_SIG,
+    ADC_Y_CONVERTED_SIG,
     SM_ADC_END,
 
 } EventSignals;
