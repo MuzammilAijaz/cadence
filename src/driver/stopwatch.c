@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include <stm8s.h>
+#include <stm8s_clk.h>
 #include <stm8s_tim4.h>
 
 #define SYSTEM_CLOCK_HZ       16000000UL // 16 MHz at max clock
