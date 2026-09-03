@@ -24,6 +24,13 @@ typedef struct {
     /* event parameters added in subclasses of Event */
 } Event;
 
+/* Custom Event class */
+typedef struct {
+    Event super; // base clas
+
+    uint16_t value; // ADC converted value // @see ADC1_GetConversionValue
+} AdcEvent;
+
 /*---------------------------------------------------------------------------*/
 /* Finite State Machine facilities... */
 

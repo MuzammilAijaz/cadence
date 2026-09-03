@@ -17,6 +17,7 @@
 #include "led.h"
 #include "stopwatch.h"
 #include "button.h"
+#include "analog_stick.h"
 
 // important so toolchain doesnt optimize code out.
 extern void EXTI_PORTD_IRQHandler(void) __interrupt(6);
@@ -58,6 +59,8 @@ int main(void)
 
   //----- GPIO Initializations -----------------------------------
 
+  GPIO_Init(ANALOG_STICK_AXIS_X_PORT, ANALOG_STICK_AXIS_X_PIN, GPIO_MODE_IN_FL_NO_IT);
+  GPIO_Init(ANALOG_STICK_AXIS_Y_PORT, ANALOG_STICK_AXIS_Y_PIN, GPIO_MODE_IN_FL_NO_IT);
   GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
   GPIO_Init(LED_PORT, LED_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
   GPIO_WriteHigh(LED_PORT, LED_PIN);
@@ -68,6 +71,8 @@ int main(void)
 
   /* Start TIM4 ticks */
   stopwatch_init();
+  /* Start ADC1 with interrupts */
+  analog_stick_init();
 
   //----- FSM Construction ---------------------------------------
 

@@ -30,6 +30,8 @@
   */ 
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdint.h>
+
 #include <stm8s_it.h>
 #include <stm8s_gpio.h>
 #include <stm8s_tim4.h>
@@ -37,6 +39,7 @@
 #include "FSM.h"
 #include "led.h"
 #include "button.h"
+#include "analog_stick.h"
 
 /** @addtogroup Template_Project
   * @{
@@ -490,6 +493,17 @@ INTERRUPT_HANDLER(I2C_IRQHandler, 19)
     /* In order to detect unexpected events during development,
        it is recommended to set a breakpoint on the following instruction.
     */
+
+   static AdcEvent adcEvt  = { 
+     evt.sig = ADC_CONVERTED_SIG,
+     value = ADC1_GetConversionValue(), // WARN:
+   };
+
+   // ASSUMPTION: we only care about the latest ADC value.
+   // WARN: we are passing an object which can change its value!!!
+   Event_post(&adcEvt.super); // pass type Event
+
+   ADC1_ClearFlag(ADC1_FLAG_EOC);
  }
 #endif /* (STM8S208) || (STM8S207) || (STM8AF52Ax) || (STM8AF62Ax) */
 

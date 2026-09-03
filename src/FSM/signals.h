@@ -21,6 +21,10 @@ typedef enum {
     DISPLAY_OFF_STATUS,
     SM_LCD_END,
 
+    SM_ADC_START,
+    ADC_CONVERTED_SIG,
+    SM_ADC_END,
+
 } EventSignals;
 
 #endif
