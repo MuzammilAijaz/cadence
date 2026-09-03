@@ -10,9 +10,11 @@
 
 #include "cadence_assert.h"
 #include "FSM.h"
+#include "machines/AudioFSM.h"
 #include "signals.h"
 #include "WatchFSM.h"
 #include "DisplayFSM.h"
+#include "AudioFSM.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -85,6 +87,7 @@ bool EventQueue_get(Event const **e) {
 void EventLoop(void) {
   CADENCE_ASSERT(g_watchFSM != NULL);
   CADENCE_ASSERT(g_displayFSM != NULL);
+  CADENCE_ASSERT(g_audioFSM != NULL);
 
   /* event loop ("message pump") */
   while (1) {
@@ -105,6 +108,10 @@ void EventLoop(void) {
       }
       else if (e->sig >= SM_ADC_START && e->sig <= SM_ADC_END) {
 	FSM_dispatch(g_displayFSM, e); // REFACTOR: introduce inputFSM???
+      }
+
+      else if (e->sig >= SM_AUDIO_START && e->sig <= SM_AUDIO_END) {
+	FSM_dispatch(g_audioFSM, e); // REFACTOR: introduce inputFSM???
       }
 
     }

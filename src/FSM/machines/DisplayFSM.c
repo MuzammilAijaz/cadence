@@ -14,6 +14,7 @@
 
 typedef enum {
   MENU_TIMER,
+  MENU_SYNTH,
 } MenuHighlightOption;
 
 typedef struct DisplayFSM {
@@ -27,10 +28,12 @@ typedef struct DisplayFSM {
 } DisplayFSM;
 
 static void displayMenu(DisplayFSM* const me);
+static StateHandler selectMenu(MenuHighlightOption option);
 static void format_time(unsigned long ms, char *buf);
 
 static State DisplayFSM_MainMenu(DisplayFSM* const me, Event const * const e);
 static State DisplayFSM_Timer(DisplayFSM* const me, Event const * const e);
+static State DisplayFSM_Synthesizer(DisplayFSM* const me, Event const * const e);
 
 static DisplayFSM l_displayFSM;
 FSM * g_displayFSM = NULL;
@@ -75,11 +78,38 @@ static State DisplayFSM_MainMenu(DisplayFSM* const me, Event const * const e) {
 
 	// REFACTOR: remove magic values
 	if (xEvt->value >= 800) { // moved right
-	  status = TRAN(DisplayFSM_Timer);
+	  status = TRAN(selectMenu(me->current_highlight));
 	} else {
 	  status = HANDLED_STATUS;
 	}
 
+      } break;
+
+    //----- Changing Highlighted Option ----------------------------
+
+    case ADC_Y_CONVERTED_SIG: // @see ADC1_IRQHandler
+      {
+	// downcast
+	AdcEvent * xEvt = (AdcEvent*) e;
+
+	// REFACTOR: remove magic values
+	if (xEvt->value <= 200) { // moved downwards
+	  // avoids flicker when holding
+	  if (me->current_highlight != MENU_SYNTH) {
+	    me->current_highlight = MENU_SYNTH;
+	    displayMenu(me);
+	  }
+	}
+
+	else if (xEvt->value >= 800) { // moved upwards
+	  // avoids flicker when holding
+	  if (me->current_highlight != MENU_TIMER) {
+	    me->current_highlight = MENU_TIMER;
+	    displayMenu(me);
+	  }
+	}
+
+	status = HANDLED_STATUS;
       } break;
 
     default:
@@ -159,6 +189,49 @@ static State DisplayFSM_Timer(DisplayFSM* const me, Event const * const e) {
   return status;
 }
 
+static State DisplayFSM_Synthesizer(DisplayFSM* const me, Event const * const e) {
+  State status;
+
+  switch(e->sig) {
+
+    case ENTRY_SIG:
+      {
+	static Event const evt = { AUDIO_TURN_ON_SIG };
+	Event_post(&evt);
+
+	lcd_set_default_synthesizer_screen();
+
+	status = HANDLED_STATUS;
+      } break;
+
+      // go back to main menu
+    case ADC_X_CONVERTED_SIG:
+      {
+	// downcast
+	AdcEvent * xEvt = (AdcEvent*) e;
+
+	// REFACTOR: remove magic values
+	if (xEvt->value <= 200) { // moved left
+				  // disable stopwatch and move to Mainmenu
+	  static Event const evt = { STOPWATCH_DISABLE_SIG };
+	  Event_post(&evt);
+
+	  status = TRAN(DisplayFSM_MainMenu);
+	}
+	else {
+	  status = HANDLED_STATUS;
+	}
+
+      } break;
+
+    default:
+      {
+	status = IGNORED_STATUS;
+      } break;
+  }
+  return status;
+}
+
 //===== Helpers ================================================================
 
 static void displayMenu(DisplayFSM* const me) {
@@ -181,9 +254,38 @@ static void displayMenu(DisplayFSM* const me) {
 
       } break;
 
+    case MENU_SYNTH:
+      {
+	// PERFORMANCE: repeated string literals...
+	lcd_set_cursor(0, 3);
+	lcd_print("Synthesizer");
+
+      } break;
+
     default:
       {
 
+      } break;
+  }
+}
+
+static StateHandler selectMenu(MenuHighlightOption option) {
+  switch(option) {
+
+    case MENU_TIMER:
+      {
+	return (StateHandler)DisplayFSM_Timer;
+      } break;
+
+    case MENU_SYNTH:
+      {
+	return (StateHandler)DisplayFSM_Synthesizer;
+      } break;
+
+    default:
+      {
+	CADENCE_ASSERT(1); // should not end up here ideally...
+	return (StateHandler)0;
       } break;
   }
 }
