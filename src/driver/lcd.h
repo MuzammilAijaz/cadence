@@ -5,7 +5,7 @@
 
 // Control Pins
 #define LCD_RS_PORT  GPIOD
-#define LCD_RS_PIN   GPIO_PIN_3
+#define LCD_RS_PIN   GPIO_PIN_2
 #define LCD_E_PORT   GPIOC
 #define LCD_E_PIN    GPIO_PIN_7
 
