@@ -19,7 +19,7 @@
         }                                  \
     } while (0)
 
-#else
+#elif defined(DEBUG_BUILD)
 
 #define CADENCE_ASSERT(expr) \
     do { \
@@ -34,6 +34,9 @@
         } \
     } while (0)
 
+#else
+
+#define CADENCE_ASSERT(expr) ((void)0)
 
 #endif
 

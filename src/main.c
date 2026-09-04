@@ -95,15 +95,65 @@ int main(void)
 
 // See: https://community.st.com/s/question/0D50X00009XkhigSAB/what-is-the-purpose-of-define-usefullassert
 #ifdef USE_FULL_ASSERT
-void assert_failed(uint8_t* file, uint32_t line)
-{ 
-	while (TRUE)
-	{
-	  GPIO_WriteHigh(LED_PORT, LED_PIN);
-	  delay_ms(100);
+static void blink_count(uint16_t count)
+{
+    for (uint16_t i = 0; i < count; i++) {
+        GPIO_WriteLow(LED_PORT, LED_PIN);
+        delay_ms(130);
 
-	  GPIO_WriteLow(LED_PORT, LED_PIN);
-	  delay_ms(100);
-	}
+        GPIO_WriteHigh(LED_PORT, LED_PIN);
+        delay_ms(130);
+    }
+
+    delay_ms(700); // give 0.7 second to process per digit
+}
+
+/**
+ * Notifies the developer about the line where the assertion occurred
+ * using a decimal LED blink code.
+ *
+ * How to read the line number:
+ * ----------------------------
+ *  -> Wait for the LED to blink rapidly.
+ *  -> A 1s pause indicates that the line number is about to be displayed.
+ *  -> Count the blinks for each digit.
+ *  -> A longer pause separates each digit.
+ *
+ *  The sequence repeats after a 2s pause.
+ */
+void assert_failed(uint8_t* file, uint32_t line)
+{
+    (void) file;
+
+    uint16_t hundreds;
+    uint16_t tens;
+    uint16_t ones;
+
+    hundreds = line / 100;
+    tens = (line / 10) % 10;
+    ones = line % 10;
+
+    while (TRUE)
+    {
+      /* Signal start of error */
+      int iter = 15;
+      while (iter--) {
+	GPIO_WriteLow(LED_PORT, LED_PIN);
+	delay_ms(20);
+	GPIO_WriteHigh(LED_PORT, LED_PIN);
+	delay_ms(20);
+      }
+      delay_ms(1000);
+
+      /* Hundreds */
+      if (hundreds) blink_count(hundreds);
+      /* Tens */
+      if (tens) blink_count(tens);
+      /* Ones */
+      blink_count(ones);
+
+      /* Long pause before repeating */
+      delay_ms(2000);
+    }
 }
 #endif
