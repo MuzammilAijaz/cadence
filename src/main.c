@@ -20,11 +20,13 @@
 #include "stopwatch.h"
 #include "button.h"
 #include "analog_stick.h"
+#include "audio.h"
 
 // important so toolchain doesnt optimize code out.
 extern void EXTI_PORTD_IRQHandler(void) __interrupt(6);
 extern void TIM4_UPD_OVF_IRQHandler(void) __interrupt(23);
 extern void ADC1_IRQHandler(void) __interrupt(22);
+extern void TIM2_UPD_OVF_BRK_IRQHandler(void) __interrupt(13);
 
 int main(void)
 {
@@ -62,6 +64,7 @@ int main(void)
 
   //----- GPIO Initializations -----------------------------------
 
+  GPIO_Init(AUDIO_PORT, AUDIO_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
   GPIO_Init(ANALOG_STICK_AXIS_X_PORT, ANALOG_STICK_AXIS_X_PIN, GPIO_MODE_IN_FL_NO_IT);
   GPIO_Init(ANALOG_STICK_AXIS_Y_PORT, ANALOG_STICK_AXIS_Y_PIN, GPIO_MODE_IN_FL_NO_IT);
   GPIO_Init(BUTTON_PORT, BUTTON_PIN, GPIO_MODE_IN_PU_IT);
@@ -76,6 +79,10 @@ int main(void)
   stopwatch_init();
   /* Start ADC1 with interrupts */
   analog_stick_init();
+
+  /* Init TIM2 and stop it immediately to avoid playing unecessary audio */
+  audio_init();
+  audio_stop();
 
   //----- FSM Construction ---------------------------------------
 

@@ -62,6 +62,10 @@ static State AudioFSM_On(AudioFSM* const me, Event const * const e) {
 
     case ENTRY_SIG:
       {
+	// startup melody for synthesizer
+	// WARN: will block UI
+	audio_play_melody();
+
 	status = HANDLED_STATUS;
       } break;
 

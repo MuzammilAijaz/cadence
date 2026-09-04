@@ -18,6 +18,9 @@
 // Timer4 - stopwatch.c
 #define VALUE_TIM4_TICK_PERIOD_MS 1UL
 
+// Timer2 - audio.c
+#define VALUE_TIM2_TICK_FREQUENCY_HZ 1000000UL // 1 million Hz, 1MHz, 1 microsecond
+
 //----- Settings -----------------------------------------------
 // DO NOT MODIFY!!
 // Automatically selected based on values
@@ -28,11 +31,23 @@
 #error "Invalid VALUE_SYSTEM_CLOCK_HZ selected!"
 #endif
 
-#if (VALUE_SYSTEM_CLOCK_HZ == 16000000UL && VALUE_TIM4_TICK_PERIOD_MS == 1UL)
+#if (VALUE_SYSTEM_CLOCK_HZ == 16000000UL) //--------------------
+
+#if (VALUE_TIM4_TICK_PERIOD_MS == 1UL)
 #define VALUE_TIM4_PRESCALER 128UL
 #define SETTING_TIM4_PRESCALER      TIM4_PRESCALER_128
 #else
 #error "Invalid VALUE_TIM4_TICK_PERIOD_MS value selected!"
 #endif
+
+#if (VALUE_TIM2_TICK_FREQUENCY_HZ == 1000000UL)
+#define SETTING_TIM2_PRESCALER  TIM2_PRESCALER_16
+#else
+#error "Unsupported timer tick frequency configuration!"
+#endif
+
+#endif //-------------------------------------------------------
+
+//--------------------------------------------------------------
 
 #endif

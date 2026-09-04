@@ -35,12 +35,14 @@
 #include <stm8s_it.h>
 #include <stm8s_gpio.h>
 #include <stm8s_tim4.h>
+#include <stm8s_tim2.h>
 #include <stm8s_adc1.h>
 
 #include "signals.h"
 #include "FSM.h"
 #include "led.h"
 #include "button.h"
+#include "audio.h"
 #include "analog_stick.h"
 
 /** @addtogroup Template_Project
@@ -310,7 +312,9 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
  {
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
-  */
+   */
+  TIM2_ClearITPendingBit(TIM2_IT_UPDATE);
+  GPIO_WriteReverse(AUDIO_PORT, AUDIO_PIN);
  }
 
 /**
