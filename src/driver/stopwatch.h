@@ -1,4 +1,3 @@
-
 #ifndef STOPWATCH__H
 #define STOPWATCH__H
 

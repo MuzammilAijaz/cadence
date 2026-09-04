@@ -1,14 +1,14 @@
+#include "stopwatch.h"
+
 #include <stdint.h>
 
 #include <stm8s.h>
 #include <stm8s_clk.h>
 #include <stm8s_tim4.h>
 
-#define SYSTEM_CLOCK_HZ       16000000UL // 16 MHz at max clock
-#define TIM4_PRESCALER_VALUE  128UL
-#define TICK_PERIOD_MS        1UL
+#include "stm8s103f3_config.h"
 
-/* Timer Clock Calculation:
+/* Timer Clock Example Calculation:
  *
  * Timer clock = 16 MHz / 128 = 125 kHz
  * Timer tick  = 1 / 125 kHz  = 8 us
@@ -18,10 +18,10 @@
  */
 
 #define TIMER_TICKS_PER_MS \
-  (SYSTEM_CLOCK_HZ / TIM4_PRESCALER_VALUE / 1000UL)
+  (VALUE_SYSTEM_CLOCK_HZ / VALUE_TIM4_PRESCALER / 1000UL)
 /** The amount of ticks it takes to restart the timer */
 #define TIM4_AUTORELOAD \
-  ((TIMER_TICKS_PER_MS * TICK_PERIOD_MS) - 1UL)
+  ((TIMER_TICKS_PER_MS * VALUE_TIM4_TICK_PERIOD_MS) - 1UL)
 
 /**
  * @brief Initialize TIM4 as a 1 ms system tick timer.
@@ -40,7 +40,7 @@ void stopwatch_init(void) {
   // explicit clock enable
   CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER4, ENABLE);
 
-  TIM4_TimeBaseInit(TIM4_PRESCALER_128, (uint8_t)TIM4_AUTORELOAD);
+  TIM4_TimeBaseInit(SETTING_TIM4_PRESCALER, (uint8_t)TIM4_AUTORELOAD);
 
   TIM4_ClearFlag(TIM4_FLAG_UPDATE); // safety
   TIM4_ITConfig(TIM4_IT_UPDATE, ENABLE); // interrupt overflow

@@ -10,6 +10,7 @@
 
 #include <cadence_assert.h>
 
+#include "stm8s103f3_config.h"
 #include "WatchFSM.h"
 #include "DisplayFSM.h"
 #include "AudioFSM.h"
@@ -53,7 +54,7 @@ int main(void)
    */
 
   /* Run CPU at FULL 16 MHz clock speed */
-  CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+  CLK_HSIPrescalerConfig(SETTING_CLOCK_PRESCALER);
 
   /* @see driver initializations for clock initializations of other
    * peripherals.
