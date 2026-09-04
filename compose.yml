@@ -10,6 +10,7 @@ services:
       HOME: /tmp
     volumes:
       - "${PROJECT_ROOT:-.}:/project"
+      - "${PROJECT_ROOT:-.}/toolchain-override/asm_analysis.py:/opt/stm8-toolchain/local/lib/python3.12/dist-packages/stm8dce/asm_analysis.py"
 
   flash:
     image: ${STM8_IMAGE:-ghcr.io/ctxz/stm8-toolchain:latest}

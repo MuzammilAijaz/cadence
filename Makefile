@@ -54,7 +54,7 @@ AS_FLAGS = -plosg -ff
 # Dead Code Elimination (DCE)
 # Set to 1 to enable Dead Code Elimination (stm8dce), or 0 to bypass DCE completely.
 # Can also be overridden from the command line: make ENABLE_DCE=0
-ENABLE_DCE ?= 0
+ENABLE_DCE ?= 1
 DCE_DIR = $(BUILD_DIR)/dce
 DCE_FLAGS = --opt-irq
 
