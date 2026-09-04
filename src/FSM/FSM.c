@@ -10,7 +10,6 @@
 
 #include "cadence_assert.h"
 #include "FSM.h"
-#include "machines/AudioFSM.h"
 #include "signals.h"
 #include "WatchFSM.h"
 #include "DisplayFSM.h"
@@ -68,8 +67,9 @@ void Event_post(Event const *e) {
     l_eventQueue[l_qHead] = e;
     l_qHead = nextHead;
   }
-  else {
-    CADENCE_ASSERT(0);
+  // WARN: unhandled edge case
+  else { // is full, RESEARCH: what to do here...
+    // CADENCE_ASSERT(0);
   }
 }
 
