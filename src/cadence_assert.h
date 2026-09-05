@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stm8s_gpio.h>
 #include <stm8s_conf.h>
-#include "utils.h"
+#include "delay.h"
 #include "led.h"
 
 #define DEBUG_BUILD 1

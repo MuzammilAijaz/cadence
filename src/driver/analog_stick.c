@@ -1,5 +1,5 @@
 #include "analog_stick.h"
-#include "utils.h"
+#include "delay.h"
 #include <stm8s_gpio.h>
 #include <stm8s_clk.h>
 #include <stm8s_adc1.h>

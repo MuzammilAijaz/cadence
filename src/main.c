@@ -15,7 +15,7 @@
 #include "DisplayFSM.h"
 #include "AudioFSM.h"
 #include "FSM.h"
-#include "utils.h"
+#include "delay.h"
 #include "led.h"
 #include "stopwatch.h"
 #include "button.h"
